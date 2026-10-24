@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Tech Daily — 지난 신문</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+/* 디자인 레퍼런스: Image/img_1.png ~ img_3.png */
+:root {
+  --ink: #111827;
+  --text: #1f2937;
+  --muted: #4b5563;
+  --faint: #6b7280;
+  --line: #e5e7eb;
+  --card-border: #e5e7eb;
+  --sub-bg: #f8fafc;
+  --sub-border: #e2e8f0;
+  --badge-bg: #fdecec;
+  --badge-ink: #c81e1e;
+  --link: #475569;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #ffffff;
+  color: var(--text);
+  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.paper {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 36px 32px 56px;
+}
+
+/* ── 제호 (img_1 상단) ───────────────────────────── */
+.masthead { text-align: center; }
+.masthead h1 {
+  margin: 0;
+  font-family: "Outfit", "Noto Sans KR", sans-serif;
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  line-height: 1.15;
+}
+.masthead .dateline {
+  margin: 14px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+.masthead .publisher { margin-left: 6px; color: var(--faint); }
+.rule {
+  height: 0;
+  border: 0;
+  border-top: 2px solid var(--ink);
+  margin: 26px 0 40px;
+}
+
+img { display: block; }
+a { color: inherit; }
+
+.summary {
+  text-align: justify;
+  text-justify: inter-character;
+  overflow-wrap: anywhere;
+}
+.source {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--faint);
+}
+.source a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+}
+
+/* ── 메인 헤드라인 (img_1) ──────────────────────── */
+.main-story {
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 34px 34px 28px;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.badge {
+  display: inline-block;
+  margin-bottom: 22px;
+  padding: 4px 11px;
+  border-radius: 6px;
+  background: var(--badge-bg);
+  color: var(--badge-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+.main-story .media {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 28px;
+}
+.main-story h2 {
+  margin: 0 0 18px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.main-story h2 a { text-decoration: none; }
+.main-story .summary {
+  max-width: 900px;
+  margin: 0 auto;
+  font-size: 15.5px;
+  line-height: 1.85;
+  color: var(--muted);
+  text-align-last: center;
+}
+
+/* ── 부 헤드라인 2단 (img_2 상단) ───────────────── */
+.sub-stories {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 28px;
+}
+.sub-story {
+  background: var(--sub-bg);
+  border: 1px solid var(--sub-border);
+  border-radius: 14px;
+  padding: 20px 20px 22px;
+}
+.sub-story .media {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+.sub-story h3 {
+  margin: 0 0 14px;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.sub-story h3 a { text-decoration: none; }
+.sub-story .summary {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+/* ── 분류별 2단 기사 목록 (img_2 하단, img_3) ────── */
+.sections {
+  column-count: 2;
+  column-gap: 40px;
+  margin-top: 56px;
+}
+.section-title {
+  break-inside: avoid;
+  break-after: avoid;
+  margin: 26px 0 6px;
+  padding: 0 0 10px;
+  border-bottom: 2px solid var(--ink);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.sections > .section-title:first-child { margin-top: 0; }
+.item {
+  break-inside: avoid;
+  display: flex;
+  gap: 18px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.item-body { flex: 1; min-width: 0; }
+.item h4 {
+  margin: 0 0 10px;
+  font-size: 16.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.item h4 a { text-decoration: none; }
+.item .summary {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--muted);
+}
+.item .thumb {
+  flex: 0 0 84px;
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+
+.empty {
+  padding: 60px 0;
+  text-align: center;
+  color: var(--faint);
+}
+
+.colophon {
+  margin-top: 48px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--faint);
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .paper { padding: 24px 16px 40px; }
+  .masthead h1 { font-size: 34px; }
+  .main-story { padding: 22px 18px; }
+  .main-story .media { height: 200px; }
+  .main-story h2 { font-size: 22px; }
+  .sub-stories { grid-template-columns: 1fr; }
+  .sections { column-count: 1; }
+}
+
+@media print {
+  .paper { max-width: none; padding: 0; }
+  .main-story, .sub-story { box-shadow: none; }
+}
+
+    .archive { max-width: 560px; margin: 0 auto; padding: 0; list-style: none; }
+    .archive li { border-bottom: 1px solid var(--line); }
+    .archive a {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 4px; text-decoration: none; font-size: 17px; color: var(--ink);
+    }
+    .archive a:hover { background: var(--sub-bg); }
+    .archive .weekday { color: var(--faint); font-size: 14px; }
+    .archive .latest .badge { margin: 0 0 0 10px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <main class="paper">
+    <header class="masthead">
+      <h1>My Tech Daily</h1>
+      <p class="dateline">발행인 Publisher · 지난 신문 1호</p>
+    </header>
+    <hr class="rule">
+    <ul class="archive">
+      <li class="latest">
+        <a href="2026-10-25.html">
+          <span>2026-10-25<span class="badge">🔥 최신호</span></span>
+          <span class="weekday">일요일</span>
+        </a>
+      </li>
+    </ul>
+  </main>
+</body>
+</html>
