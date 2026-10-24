@@ -6,14 +6,14 @@
 - [x] Roadmap.md — 로드맵
 - [x] `.gitignore`, `.env.example`(값 비움), `Image/` 디자인 레퍼런스
 
-## 1단계: 데이터 수집 및 정제
-- [ ] 가상환경 `.venv` + `requirements.txt`
-- [ ] `Source/config.py` — .env 로딩, 전날 08:00 ~ 당일 08:00(KST) 수집 구간 계산
-- [ ] `Source/models.py` — 데이터 모델
-- [ ] `Source/gmail_imap.py` — IMAP SSL 접속, `News` 라벨 수집, 제목/본문/URL 파싱
-- [ ] `Source/crawler.py` — Playwright 크롤러 (정형: 그대로 / 비정형: 링크 크롤링, X 폴백)
-- [ ] `Source/filter_dedup.py` — 동일 URL + 제목 유사도 65% 중복 제거
-- [ ] `Source/verify_stage1.py` — 1단계 검증 스크립트
+## 1단계: 데이터 수집 및 정제 ✅
+- [x] 가상환경 `.venv` + `requirements.txt`
+- [x] `Source/config.py` — .env 로딩, 전날 08:00 ~ 당일 08:00(KST) 수집 구간 계산
+- [x] `Source/models.py` — 데이터 모델
+- [x] `Source/gmail_imap.py` — IMAP SSL 접속, `News` 라벨 수집, 제목/본문/URL 파싱
+- [x] `Source/crawler.py` — Playwright 크롤러 (정형: 그대로 / 비정형: 링크 크롤링, X 폴백)
+- [x] `Source/filter_dedup.py` — 동일 URL + 제목 유사도 65% 중복 제거
+- [x] `Source/verify_stage1.py` — 1단계 검증 스크립트
 - [ ] 실제 Gmail 수신 검증 — `.env`에 `GMAIL_USER`, `GMAIL_APP_PASSWORD` 입력 후 `verify_stage1.py` 실행 (사용자)
 
 ## 2단계: 편집 및 발행
