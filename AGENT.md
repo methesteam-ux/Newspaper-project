@@ -55,7 +55,7 @@ Newspaper-project/
 ├── register_task.ps1         # 실제 등록 로직 (WakeToRun, StartWhenAvailable)
 ├── .github/workflows/
 │   └── daily-newspaper.yml   # [응용과제] GitHub Actions 클라우드 발행 + GitHub Pages 배포
-├── Image/                    # 디자인 레퍼런스 이미지 (img_1 ~ img_3)
+├── Image/                    # 디자인 레퍼런스 이미지 (img_1 ~ img_3, 로컬 전용·저장소 미포함)
 ├── Output/                   # 발행된 신문 HTML (YYYY-MM-DD.html), 지난 신문 목록(index.html), 실행 로그
 └── Source/
     ├── config.py             # .env 로딩, 08:00 수집 시간대 계산

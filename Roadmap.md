@@ -4,7 +4,7 @@
 - [x] AGENT.md — 시스템 규격 / 작업 규칙
 - [x] PRD.md — 요구사항 정의
 - [x] Roadmap.md — 로드맵
-- [x] `.gitignore`, `.env.example`(값 비움), `Image/` 디자인 레퍼런스
+- [x] `.gitignore`, `.env.example`(값 비움), `Image/` 디자인 레퍼런스(로컬 전용)
 
 ## 1단계: 데이터 수집 및 정제 ✅
 - [x] 가상환경 `.venv` + `requirements.txt`

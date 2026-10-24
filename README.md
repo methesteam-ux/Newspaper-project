@@ -4,7 +4,7 @@
 Gemini가 편집한 일간 신문 HTML**(`Output/YYYY-MM-DD.html`)을 발행합니다.
 
 - 설계 문서: [AGENT.md](AGENT.md) · [PRD.md](PRD.md) · [Roadmap.md](Roadmap.md)
-- 디자인 레퍼런스: [Image/](Image/)
+- 디자인 레퍼런스: 로컬 `Image/img_1~3.png` (강의 자료 스크린샷이라 저장소에는 포함하지 않음)
 
 ## 1. 설치
 
