@@ -16,13 +16,13 @@
 - [x] `Source/verify_stage1.py` — 1단계 검증 스크립트
 - [ ] 실제 Gmail 수신 검증 — `.env`에 `GMAIL_USER`, `GMAIL_APP_PASSWORD` 입력 후 `verify_stage1.py` 실행 (사용자)
 
-## 2단계: 편집 및 발행
-- [ ] `Source/sns_helper.py` — SNS 한글 번역 + 짧은 헤드라인
-- [ ] `Source/curator.py` — Gemini 중요도 평가(메인 1 / 부 2), 카테고리 분류, 2~3줄 요약, 폴백 편집
-- [ ] `Source/templates/newspaper.html`, `style.css` — img_1~3 1:1 디자인
-- [ ] `Source/renderer.py` — HTML 렌더러 (요약 justify, 출처 URL 링크)
-- [ ] `Source/main.py` — 통합 파이프라인 → `Output/YYYY-MM-DD.html`
-- [ ] `Source/scheduler.py`, `run_daily.bat`, `register_task.bat`(+`.ps1`) — 매일 08:00 자동 발행
+## 2단계: 편집 및 발행 ✅
+- [x] `Source/sns_helper.py` — SNS 한글 번역 + 짧은 헤드라인
+- [x] `Source/curator.py` — Gemini 중요도 평가(메인 1 / 부 2), 카테고리 분류, 2~3줄 요약, 폴백 편집
+- [x] `Source/templates/newspaper.html`, `style.css` — img_1~3 1:1 디자인
+- [x] `Source/renderer.py` — HTML 렌더러 (요약 justify, 출처 URL 링크)
+- [x] `Source/main.py` — 통합 파이프라인 → `Output/YYYY-MM-DD.html`
+- [x] `Source/scheduler.py`, `run_daily.bat`, `register_task.bat`(+`.ps1`) — 매일 08:00 자동 발행
 - [ ] 실제 Gemini 편집 검증 — `.env`에 `GEMINI_API_KEY` 입력 후 `run_daily.bat` 실행 (사용자)
 
 ## 응용과제

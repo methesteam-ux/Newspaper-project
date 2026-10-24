@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ paper.title }} — {{ paper.edition_date.isoformat() }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+{{ css | safe }}
+  </style>
+</head>
+<body>
+{%- macro source(c) -%}
+  <p class="source">출처:
+    {%- if c.article.url %} <a href="{{ c.article.url }}" target="_blank" rel="noopener">{{ c.article.url }}</a>
+    {%- else %} {{ c.article.source_name }}{% endif %}
+  </p>
+{%- endmacro -%}
+{%- macro image(c, cls) -%}
+  {%- if c.article.image_url -%}
+  <img class="{{ cls }}" src="{{ c.article.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">
+  {%- endif -%}
+{%- endmacro -%}
+{%- macro title_link(c) -%}
+  {%- if c.article.url %}<a href="{{ c.article.url }}" target="_blank" rel="noopener">{{ c.article.title }}</a>{% else %}{{ c.article.title }}{% endif -%}
+{%- endmacro %}
+  <main class="paper">
+    <header class="masthead">
+      <h1>{{ paper.title }}</h1>
+      <p class="dateline">{{ paper.edition_date.isoformat() }} 발행 ({{ paper.edition }})<span class="publisher">· 발행인 {{ paper.publisher }}</span></p>
+    </header>
+    <hr class="rule">
+
+    {% if paper.main %}
+    <article class="main-story">
+      <span class="badge">🔥 최고 주요 소식</span>
+      {{ image(paper.main, "media") }}
+      <h2>{{ title_link(paper.main) }}</h2>
+      <p class="summary">{{ paper.main.summary }}</p>
+      {{ source(paper.main) }}
+    </article>
+    {% else %}
+    <p class="empty">수집 기간({{ paper.window_label }})에 'News' 라벨로 들어온 기사가 없습니다.</p>
+    {% endif %}
+
+    {% if paper.subs %}
+    <section class="sub-stories">
+      {% for c in paper.subs %}
+      <article class="sub-story">
+        {{ image(c, "media") }}
+        <h3>{{ title_link(c) }}</h3>
+        <p class="summary">{{ c.summary }}</p>
+        {{ source(c) }}
+      </article>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if paper.sections %}
+    <section class="sections">
+      {% for category, items in paper.sections %}
+      <h3 class="section-title">{{ category }}</h3>
+      {% for c in items %}
+      <article class="item">
+        <div class="item-body">
+          <h4>{{ title_link(c) }}</h4>
+          <p class="summary">{{ c.summary }}</p>
+          {{ source(c) }}
+        </div>
+        {{ image(c, "thumb") }}
+      </article>
+      {% endfor %}
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    <footer class="colophon">
+      {{ paper.title }} · 수집 기간 {{ paper.window_label }} · 기사 {{ paper.article_count }}건 · 제작 {{ paper.generated_at.strftime("%Y-%m-%d %H:%M") }} KST
+    </footer>
+  </main>
+</body>
+</html>

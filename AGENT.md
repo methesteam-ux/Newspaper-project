@@ -19,7 +19,7 @@ Gmail 필터가 `News` 라벨을 붙이고, 이 프로그램이 매일 아침 08
 | 단계 | 범위 | 상태 |
 |------|------|------|
 | 1단계 | 가상환경, requirements.txt, Gmail IMAP 수집(News 라벨, 전날 08:00 ~ 당일 08:00), Playwright 크롤링(정형/비정형), 중복 기사 제거, 신문 메타데이터 | 완료 |
-| 2단계 | Gemini 중요도 평가(메인 1 / 부 2 / 카테고리), SNS 한글 번역·헤드라인, 레퍼런스 이미지 1:1 디자인 템플릿, `Output/YYYY-MM-DD.html` 발행, 08:00 스케줄러 | 예정 |
+| 2단계 | Gemini 중요도 평가(메인 1 / 부 2 / 카테고리), SNS 한글 번역·헤드라인, 레퍼런스 이미지 1:1 디자인 템플릿, `Output/YYYY-MM-DD.html` 발행, 08:00 스케줄러 | 완료 |
 | 응용과제 | PC가 꺼져 있어도 발행 — GitHub Actions 클라우드 실행 | 예정 |
 
 > 응용과제 중 "신문 디자인 개선", "월~금 발행"은 아직 범위가 아니다. 요청이 있을 때만 진행한다.
@@ -49,6 +49,7 @@ Newspaper-project/
 ├── requirements.txt          # 필수 라이브러리 목록
 ├── .env.example              # 환경설정 템플릿 (값은 비어 있음)
 ├── .gitignore
+├── .gitattributes            # .bat/.ps1 CRLF 줄바꿈 고정
 ├── run_daily.bat             # 가상환경 기반 신문 발행 원클릭 실행
 ├── register_task.bat         # Windows 작업 스케줄러 등록 (관리자 권한)
 ├── register_task.ps1         # 실제 등록 로직 (WakeToRun, StartWhenAvailable)
@@ -63,6 +64,7 @@ Newspaper-project/
     ├── crawler.py            # [1단계] Playwright 동적 크롤러 (정형/비정형)
     ├── filter_dedup.py       # [1단계] 중복 기사 제거 (URL + 제목 유사도 65%)
     ├── verify_stage1.py      # [1단계] 수집 파이프라인 검증 스크립트
+    ├── llm.py                # [2단계] Gemini 공통 클라이언트 (스키마 고정 JSON, 재시도)
     ├── sns_helper.py         # [2단계] SNS 한글 번역 + 헤드라인 생성 (Gemini)
     ├── curator.py            # [2단계] 중요도 평가, 메인/부 헤드라인, 분류, 2~3줄 요약 (Gemini)
     ├── renderer.py           # [2단계] Jinja2 HTML 렌더러
@@ -70,6 +72,7 @@ Newspaper-project/
     │   ├── newspaper.html    # 신문 레이아웃 템플릿
     │   └── style.css         # 레퍼런스 이미지 기반 스타일 (HTML에 인라인 삽입)
     ├── main.py               # 전체 파이프라인 통합 CLI
+    ├── demo_data.py          # --demo 샘플 기사 (자격 증명 없이 레이아웃 확인)
     └── scheduler.py          # 파이썬 상주형 08:00 자동 발행 데몬
 ```
 
