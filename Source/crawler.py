@@ -319,6 +319,7 @@ def article_from_mail(mail: RawMail, crawler: Crawler) -> Article | None:
         is_sns=is_sns,
         kind=kind,
         mail_subject=mail.subject,
+        received_at=mail.received_at,
     )
 
 

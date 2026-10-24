@@ -58,7 +58,8 @@ Newspaper-project/
 ├── .github/workflows/
 │   └── daily-newspaper.yml   # [응용과제] GitHub Actions 클라우드 발행 + GitHub Pages 배포
 ├── Image/                    # 디자인 레퍼런스 이미지 (img_1 ~ img_3, 로컬 전용·저장소 미포함)
-├── Output/                   # 발행된 신문 HTML (YYYY-MM-DD.html), 지난 신문 목록(index.html), 실행 로그
+├── Output/                   # 신문(YYYY-MM-DD.html), 지난 신문(index.html), RSS(feed.xml), 발행 기록(data/*.json)
+│                             #  로컬 전용: daily_run.log, preview.html, _demo/, _debug/
 └── Source/
     ├── config.py             # .env 로딩, 발행 요일, 수집 시간대 계산
     ├── automation.py         # 정기 자동 발행 on/off (작업 스케줄러 / 워크플로 schedule 블록)
@@ -70,13 +71,19 @@ Newspaper-project/
     ├── llm.py                # [2단계] Gemini 공통 클라이언트 (스키마 고정 JSON, 재시도)
     ├── sns_helper.py         # [2단계] SNS 한글 번역 + 헤드라인 생성 (Gemini)
     ├── curator.py            # [2단계] 중요도 평가, 메인/부 헤드라인, 분류, 2~3줄 요약 (Gemini)
-    ├── renderer.py           # [2단계] Jinja2 HTML 렌더러
+    ├── renderer.py           # [2단계] Jinja2 렌더러 (신문, 지난 신문 페이지, RSS)
+    ├── archive.py            # [응용] 발행 기록: 호수, 이전/다음 호, 이번 주 1면, 예전 호 복원
+    ├── insights.py           # [응용] 지면 데이터: 분야 분포, 도착 시간대, 출처 수, 분야 색
+    ├── weather.py            # [응용] 제호 옆 날씨 (Open-Meteo, 키 불필요)
+    ├── newsletter.py         # [응용] 뉴스레터 메일 (기본 꺼짐)
     ├── templates/
-    │   ├── newspaper.html    # 신문 레이아웃 템플릿
-    │   ├── index.html        # 지난 신문 목록 (GitHub Pages 첫 화면)
-    │   └── style.css         # 레퍼런스 이미지 기반 스타일 (HTML에 인라인 삽입)
+    │   ├── newspaper.html    # 신문 지면 템플릿
+    │   ├── newspaper.js      # 지면 인터랙션 (테마, 검색, 음성, 읽음 표시, 단축키)
+    │   ├── index.html        # 지난 신문 (GitHub Pages 첫 화면: 최신호, 달력, 검색)
+    │   ├── feed.xml          # RSS 2.0
+    │   └── style.css         # 지면 스타일 (img_1~3 레이아웃 골격 + 클래식 신문 디자인, 3가지 테마)
     ├── main.py               # 전체 파이프라인 통합 CLI
-    ├── demo_data.py          # --demo 샘플 기사 (자격 증명 없이 레이아웃 확인)
+    ├── demo_data.py          # --demo 샘플 기사 (이번 주 데모 신문 → Output/_demo/)
     └── scheduler.py          # 파이썬 상주형 발행 데몬 (직접 실행할 때만 동작)
 ```
 
@@ -104,7 +111,7 @@ Newspaper-project/
    - 부 헤드라인: 2단 카드(메인의 1/2 폭).
    - 나머지: 카테고리 제목 + 2단(CSS columns) 목록, 제목/요약/썸네일(우측)/출처.
    - 요약은 2~3줄, `text-align: justify`. 출처는 **원문 URL 링크**로 표시.
-8. **통합 CLI (`Source/main.py`)**: `python Source/main.py [--date YYYY-MM-DD] [--demo] [--no-llm]`.
+8. **통합 CLI (`Source/main.py`)**: `python Source/main.py [--date YYYY-MM-DD] [--preview] [--demo] [--no-llm] [--newsletter]`.
 9. **스케줄러 (기본: 모두 꺼짐)**: `run_daily.bat`(수동 1회 실행, `Output/daily_run.log` 기록),
    `scheduler.py`(직접 띄운 동안만 동작하는 상주형),
    `automation.bat local on|off`(Windows 작업 스케줄러: 발행 요일 08:00, WakeToRun, StartWhenAvailable / off = 작업 삭제),
@@ -112,6 +119,14 @@ Newspaper-project/
    off = schedule 트리거 자체가 없어 GitHub 가 워크플로를 호출하지 않음. 수동 *Run workflow* 만 가능).
    워크플로는 결과를 커밋하고 GitHub Pages 로 배포한다. `AUTOMATION` 블록은 손으로 고치지 않는다.
 10. **로그 공개 주의**: 로그는 Artifacts 로 공개될 수 있으므로 메일 주소·키를 로그에 남기지 않는다. Pages 에는 HTML 만 올린다.
+
+### 응용과제 — 디자인·부가 기능 규격
+- 기본 레이아웃(메인 1단 / 부 2단 / 분야별 2단 + 썸네일, 요약 2~3줄 justify, 출처 URL)은 유지하고, 그 위에 지면을 더한다.
+- 부가 지면(브리핑, 편집장 한마디, 숫자, 키워드, 왜 중요한가)은 Gemini 편집 결과(`EditorialPlan`)에서 오며,
+  숫자는 본문에 있는 값만 허용한다. LLM 이 없으면 `curator.py` 의 규칙 기반 폴백을 쓴다.
+- 지면은 단일 HTML 파일(CSS/JS 인라인)로 유지한다. JS 가 꺼져 있어도 내용은 모두 보여야 한다(`.js` 클래스로만 애니메이션).
+- 브라우저 저장소(테마, 글자 크기, 읽음 표시)는 개인 편의 기능이며 실패해도 지면은 정상 동작해야 한다.
+- 날씨·뉴스레터 등 외부 호출은 실패해도 발행을 막지 않는다. 뉴스레터는 기본 꺼짐.
 
 ## 6. 환경 변수
 
@@ -128,6 +143,10 @@ Newspaper-project/
 | `EDITION_NAME` | 에디션(편집인) 이름 | `My 에디션` |
 | `PUBLISH_HOUR` | 발행·수집 기준 시각(시) | `8` |
 | `PUBLISH_DAYS` | 발행 요일 (`mon-fri`, `daily`, `mon,wed,fri` …) | `mon-fri` |
+| `TAGLINE` | 제호 위 한 줄 소개 | `AI 편집장이 고른 오늘의 테크 뉴스` |
+| `WEATHER_ENABLED` / `WEATHER_CITY` / `WEATHER_LAT` / `WEATHER_LON` | 제호 옆 날씨 | `true` / 서울 |
+| `SITE_URL` | GitHub Pages 주소 (RSS·QR·OG) | git origin 에서 자동 추정 |
+| `NEWSLETTER_ENABLED` / `NEWSLETTER_TO` | 뉴스레터 메일 발송 / 받는 사람 | `false` / `GMAIL_USER` |
 
 ## 7. 작업 규칙 (에이전트용)
 

@@ -1,46 +1,164 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title }} — 지난 신문</title>
+  <meta name="description" content="{{ tagline }}">
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ tagline }}">
+  {% if latest and latest.main and latest.main.image %}<meta property="og:image" content="{{ latest.main.image }}">{% endif %}
+  {% if site_url %}<link rel="alternate" type="application/rss+xml" title="{{ title }}" href="{{ site_url }}feed.xml">{% endif %}
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📰</text></svg>">
+  <script>
+    document.documentElement.classList.add("js");
+    try { var t = localStorage.getItem("np-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
   <style>
 {{ css | safe }}
-    .archive { max-width: 560px; margin: 0 auto; padding: 0; list-style: none; }
-    .archive li { border-bottom: 1px solid var(--line); }
-    .archive a {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 16px 4px; text-decoration: none; font-size: 17px; color: var(--ink);
-    }
-    .archive a:hover { background: var(--sub-bg); }
-    .archive .weekday { color: var(--faint); font-size: 14px; }
-    .archive .latest .badge { margin: 0 0 0 10px; font-size: 12px; }
   </style>
 </head>
 <body>
+  <header class="topbar">
+    <span class="today">{{ schedule_label }} 발행 · 발행인 {{ publisher }}</span>
+    <div class="tools">
+      {% if latest %}<a class="tool" href="{{ latest.file }}" style="text-decoration:none">📰 최신호 읽기</a>{% endif %}
+      {% if site_url %}<a class="tool" href="{{ site_url }}feed.xml" style="text-decoration:none">📡 RSS</a>{% endif %}
+      <button class="tool" id="themeBtn">☀️ 라이트</button>
+    </div>
+  </header>
   <main class="paper">
     <header class="masthead">
-      <h1>{{ title }}</h1>
-      <p class="dateline">발행인 {{ publisher }} · 지난 신문 {{ editions | length }}호</p>
+      <div class="ear ear-left"><b>지난 신문</b>총 {{ editions | length }}호<br>기사 {{ total_articles }}건</div>
+      <div class="nameplate">
+        <p class="kicker">{{ tagline }}</p>
+        <h1>{{ title }}</h1>
+      </div>
+      <div class="ear ear-right"><b>ARCHIVE</b>달력에서 날짜를<br>눌러 지난 호 보기</div>
     </header>
-    <hr class="rule">
-    {% if editions %}
-    <ul class="archive">
-      {% for e in editions %}
-      <li{% if loop.first %} class="latest"{% endif %}>
-        <a href="{{ e.file }}">
-          <span>{{ e.date.isoformat() }}{% if loop.first %}<span class="badge">🔥 최신호</span>{% endif %}</span>
-          <span class="weekday">{{ "월화수목금토일"[e.date.weekday()] }}요일</span>
-        </a>
-      </li>
-      {% endfor %}
-    </ul>
+    <div class="dateline-bar">
+      <span>최신호 <b>{{ latest.date if latest else '-' }}</b></span>
+      <span>발행 일정 {{ schedule_label }} KST</span>
+      <span>Gmail · Playwright · Gemini 로 만드는 나만의 신문</span>
+    </div>
+
+    {% if latest %}
+    <a class="hero reveal" href="{{ latest.file }}">
+      {% if latest.main and latest.main.image %}<img src="{{ latest.main.image }}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">{% endif %}
+      <div class="hero-body">
+        <span class="badge" style="align-self:flex-start;margin:0">🔥 최신호 · {{ latest.date }}{% if latest.issue_no %} · 제{{ latest.issue_no }}호{% endif %}</span>
+        <h2>{{ latest.main.title if latest.main else latest.date ~ ' 호' }}</h2>
+        {% if latest.briefing %}<ol>{% for b in latest.briefing %}<li>{{ b }}</li>{% endfor %}</ol>
+        {% elif latest.main and latest.main.summary %}<p class="summary" style="margin:0;color:var(--muted)">{{ latest.main.summary }}</p>{% endif %}
+        <span class="cta">지면 펼치기 →</span>
+      </div>
+    </a>
     {% else %}
     <p class="empty">아직 발행된 신문이 없습니다.</p>
     {% endif %}
+
+    <div class="archive-grid">
+      <section>
+        <h2 class="label">발행 달력</h2>
+        {% for m in months %}
+        <div class="cal reveal">
+          <h3>{{ m.label }}</h3>
+          <table>
+            <thead><tr>{% for d in "월화수목금토일" %}<th>{{ d }}</th>{% endfor %}</tr></thead>
+            <tbody>
+              {% for week in m.weeks %}
+              <tr>
+                {% for c in week %}
+                <td class="{{ 'out' if not c.in_month }} {{ 'rest' if not c.publish_day }} {{ 'today' if c.today }}">
+                  {% if c.edition and c.in_month %}<a href="{{ c.edition.file }}" title="{{ c.edition.main.title if c.edition.main else '' }}">{{ c.day }}</a>{% else %}<span>{{ c.day }}</span>{% endif %}
+                </td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endfor %}
+        <p class="cal-legend"><span><i></i>발행된 호</span><span>흐린 칸: 휴간일</span></p>
+
+        {% if top_keywords %}
+        <h2 class="label" style="margin-top:26px">자주 나온 키워드</h2>
+        <div class="chips">
+          {% for word, n in top_keywords %}<button class="chip" data-filter="{{ word }}" style="--w: {{ [n - 1, 4] | min }}">#{{ word }} <small>{{ n }}</small></button>{% endfor %}
+        </div>
+        {% endif %}
+      </section>
+
+      <section>
+        <h2 class="label">전체 기사 검색</h2>
+        <label class="search"><input id="q" type="search" placeholder="지난 신문 전체에서 검색  ( / )" autocomplete="off" style="width:100%"></label>
+        <ul class="results" id="results"></ul>
+
+        <h2 class="label" style="margin-top:26px">발행 목록</h2>
+        <ul class="ed-list">
+          {% for e in editions %}
+          <li><a href="{{ e.file }}">
+            <time>{{ e.date }} ({{ e.weekday }})</time>
+            <strong>{{ e.main.title if e.main and e.main.title else e.date ~ ' 호' }}</strong>
+            <small>{% if e.issue_no %}제{{ e.issue_no }}호 · {% endif %}기사 {{ e.count }}건</small>
+          </a></li>
+          {% endfor %}
+        </ul>
+      </section>
+    </div>
+
+    <footer class="colophon">
+      <div>{{ title }} · 지난 신문 · <span class="kbd-hint"><kbd>/</kbd> 검색</span></div>
+    </footer>
   </main>
+  <div class="toast" id="toast" role="status"></div>
+  <script type="application/json" id="searchIndex">{{ search_json | safe }}</script>
+  <script>
+  (function () {
+    var root = document.documentElement;
+    var THEMES = [["light", "☀️ 라이트"], ["sepia", "📜 종이"], ["dark", "🌙 다크"]];
+    var btn = document.getElementById("themeBtn");
+    function label() { var t = THEMES.filter(function (x) { return x[0] === (root.dataset.theme || "light"); })[0] || THEMES[0]; btn.textContent = t[1]; }
+    label();
+    btn.addEventListener("click", function () {
+      var i = THEMES.map(function (x) { return x[0]; }).indexOf(root.dataset.theme || "light");
+      root.dataset.theme = THEMES[(i + 1) % 3][0]; label();
+      try { localStorage.setItem("np-theme", root.dataset.theme); } catch (e) {}
+    });
+
+    var data = [];
+    try { data = JSON.parse(document.getElementById("searchIndex").textContent); } catch (e) {}
+    var q = document.getElementById("q"), out = document.getElementById("results");
+    function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+    function run() {
+      var terms = q.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+      if (!terms.length) { out.innerHTML = ""; return; }
+      var hits = data.filter(function (a) {
+        var hay = (a.t + " " + a.c).toLowerCase();
+        return terms.every(function (t) { return hay.indexOf(t) >= 0; });
+      }).reverse().slice(0, 60);
+      out.innerHTML = hits.length ? hits.map(function (a) {
+        return '<li><a href="' + esc(a.f) + (a.u ? "#" + esc(a.u) : "") + '"><small>' + esc(a.d) + "</small>" + esc(a.t) + "</a></li>";
+      }).join("") : '<li style="padding:8px 4px;color:var(--faint)">검색 결과가 없습니다</li>';
+    }
+    q.addEventListener("input", run);
+    Array.prototype.forEach.call(document.querySelectorAll(".chip"), function (c) {
+      c.addEventListener("click", function () { q.value = c.dataset.filter; run(); q.scrollIntoView({ block: "center" }); });
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "/" && document.activeElement !== q) { e.preventDefault(); q.focus(); }
+      if (e.key === "Escape") { q.value = ""; run(); }
+    });
+
+    var els = document.querySelectorAll(".reveal");
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (en) { en.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add("in"); io.unobserve(x.target); } }); });
+      Array.prototype.forEach.call(els, function (el) { io.observe(el); });
+    } else Array.prototype.forEach.call(els, function (el) { el.classList.add("in"); });
+  })();
+  </script>
 </body>
 </html>

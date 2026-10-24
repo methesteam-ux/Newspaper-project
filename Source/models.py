@@ -34,6 +34,7 @@ class Article:
     original_body: str = ""  # SNS 번역 전 원문
     mention_count: int = 1  # 중복 병합된 건수 = 그날 언급 횟수
     mail_subject: str = ""
+    received_at: datetime | None = None  # 메일 수신 시각 (도착 시간대 통계용)
 
 
 @dataclass
@@ -44,6 +45,27 @@ class CuratedArticle:
     category: str
     summary: str
     importance: int = 0
+    keywords: list[str] = field(default_factory=list)
+    why: str = ""  # 왜 중요한가 (한 문장)
+    reading_min: int = 1  # 원문 예상 읽기 시간(분)
+    uid: str = ""  # 페이지 안 앵커/읽음 표시용 식별자
+
+
+@dataclass
+class Weather:
+    city: str
+    emoji: str
+    text: str
+    temp: float
+    t_max: float
+    t_min: float
+
+
+@dataclass
+class Stat:
+    label: str
+    value: int
+    color: str = ""
 
 
 @dataclass
@@ -58,3 +80,24 @@ class Newspaper:
     sections: list[tuple[str, list[CuratedArticle]]]  # (카테고리, 기사 목록)
     article_count: int = 0
     window_label: str = ""
+    # ── 부가 지면 ──
+    tagline: str = ""
+    issue_no: int = 1
+    schedule_label: str = ""
+    briefing: list[str] = field(default_factory=list)  # 오늘의 3줄 브리핑
+    editor_note: str = ""  # 편집장 한마디
+    numbers: list[tuple[str, str]] = field(default_factory=list)  # 숫자로 보는 오늘 (값, 설명)
+    keywords: list[tuple[str, int]] = field(default_factory=list)  # 오늘의 키워드 (단어, 빈도)
+    weather: Weather | None = None
+    category_stats: list[Stat] = field(default_factory=list)
+    arrival_hist: list[int] = field(default_factory=list)  # 0~23시 메일 도착 건수
+    source_count: int = 0
+    total_reading_min: int = 0
+    sns_count: int = 0
+    weekly: list[dict] = field(default_factory=list)  # 이번 주 1면 모아보기
+    prev_edition: str = ""  # 파일명
+    next_edition: str = ""
+    site_url: str = ""
+    qr_svg: str = ""
+    category_colors: dict[str, str] = field(default_factory=dict)
+    llm_used: bool = False

@@ -1,18 +1,23 @@
 """--demo 용 샘플 기사 (Gmail/Gemini 자격 증명 없이 레이아웃 확인용)."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from config import KST
 from models import Article
+
+# 메일이 도착한 시각(수집 구간 시작 08:00 기준 경과 시간) — '도착 시간대' 그래프용
+_ARRIVAL_OFFSETS_H = [1.2, 2.5, 4.1, 5.7, 9.3, 11.8, 13.4, 15.1, 22.6]
 
 
 def _img(seed: str) -> str:
     return f"https://picsum.photos/seed/{seed}/800/450"
 
 
-def sample_articles() -> list[Article]:
+def sample_articles(variant: int = 0, window_start: datetime | None = None) -> list[Article]:
+    """variant 마다 기사 순서와 언급 횟수를 바꿔 날마다 다른 1면이 나오게 한다 (데모 아카이브용)."""
     now = datetime.now(KST)
+    window_start = window_start or now - timedelta(days=1)
     rows = [
         ("지멘스·TSMC, AI 기반 반도체 설계 자동화 고도화…공동 혁신 통해 생산성 향상",
          "지멘스 EDA 사업부가 TSMC와 협력하여 인공지능(AI) 기반 반도체 설계 자동화 기술을 한층 고도화합니다. "
@@ -48,8 +53,14 @@ def sample_articles() -> list[Article]:
          "핵심인 스트리밍 전사 모델은 320밀리초 내에 첫 전사 결과를 제공하며 60개 이상의 언어를 지원한다.",
          "https://n.news.naver.com/mnews/article/000/0000000002", _img("microsoft"), 1, False),
     ]
-    return [
-        Article(title=t, body=b, url=u, image_url=img, source_name="데모", published_at=now,
-                is_sns=sns, mention_count=mc, kind="crawled")
-        for t, b, u, img, mc, sns in rows
-    ]
+    k = variant % len(rows)
+    rows = rows[k:] + rows[:k]
+    articles = []
+    for i, (t, b, u, img, mc, sns) in enumerate(rows):
+        received = window_start + timedelta(hours=_ARRIVAL_OFFSETS_H[i % len(_ARRIVAL_OFFSETS_H)])
+        articles.append(Article(
+            title=t, body=b, url=u, image_url=img, source_name="X" if sns else "데모", published_at=received,
+            is_sns=sns, mention_count=(3 if i == 0 else mc if variant == 0 else 1), kind="crawled",
+            received_at=received,
+        ))
+    return articles

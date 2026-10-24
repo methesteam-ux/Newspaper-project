@@ -1,45 +1,180 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ paper.title }} — {{ paper.edition_date.isoformat() }}</title>
+  <title>{{ paper.title }} 제{{ paper.issue_no }}호 — {{ paper.edition_date.isoformat() }}</title>
+  <meta name="description" content="{{ paper.briefing | join(' · ') }}">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="{{ paper.title }}">
+  <meta property="og:title" content="{{ paper.title }} {{ paper.edition_date.isoformat() }} — {{ paper.main.article.title if paper.main else '' }}">
+  <meta property="og:description" content="{{ paper.main.summary if paper.main else paper.tagline }}">
+  {% if paper.main and paper.main.article.image_url %}<meta property="og:image" content="{{ paper.main.article.image_url }}">{% endif %}
+  {% if page_url %}<meta property="og:url" content="{{ page_url }}">{% endif %}
+  {% if paper.site_url %}<link rel="alternate" type="application/rss+xml" title="{{ paper.title }}" href="{{ paper.site_url }}feed.xml">{% endif %}
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📰</text></svg>">
+  <script>
+    document.documentElement.classList.add("js");
+    try { var t = localStorage.getItem("np-theme"); if (t) document.documentElement.dataset.theme = t;
+          var f = localStorage.getItem("np-fs"); if (f) document.documentElement.style.setProperty("--fs", f); } catch (e) {}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
   <style>
 {{ css | safe }}
   </style>
 </head>
-<body>
+<body data-edition="{{ paper.edition_date.isoformat() }}">
 {%- macro source(c) -%}
   <p class="source">출처:
     {%- if c.article.url %} <a href="{{ c.article.url }}" target="_blank" rel="noopener">{{ c.article.url }}</a>
     {%- else %} {{ c.article.source_name }}{% endif %}
   </p>
 {%- endmacro -%}
-{%- macro image(c, cls) -%}
+{%- macro image(c, cls, wrap=True) -%}
   {%- if c.article.image_url -%}
-  <img class="{{ cls }}" src="{{ c.article.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">
+  {%- if wrap %}<div class="media-wrap">{% endif -%}
+  <img class="{{ cls }}" src="{{ c.article.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="(this.closest('.media-wrap')||this).remove()">
+  {%- if wrap %}</div>{% endif -%}
   {%- endif -%}
 {%- endmacro -%}
 {%- macro title_link(c) -%}
-  {%- if c.article.url %}<a href="{{ c.article.url }}" target="_blank" rel="noopener">{{ c.article.title }}</a>{% else %}{{ c.article.title }}{% endif -%}
+  {%- if c.article.url %}<a href="{{ c.article.url }}" target="_blank" rel="noopener" data-read>{{ c.article.title }}</a>{% else %}{{ c.article.title }}{% endif -%}
+  <span class="read-mark">✓ 읽음</span>
+{%- endmacro -%}
+{%- macro eyebrow(c) -%}
+  <p class="eyebrow" style="--c: {{ c.category | catcolor }}">{{ c.category }}
+    <span class="meter" title="AI 편집 중요도 {{ c.importance }}/100"><i style="--v: {{ c.importance }}%"></i>{{ c.importance }}</span>
+    {% if c.article.mention_count > 1 %}<span class="meter">🔁 {{ c.article.mention_count }}회 언급</span>{% endif %}
+  </p>
+{%- endmacro -%}
+{%- macro tools(c) -%}
+  <div class="story-tools">
+    {% for k in c.keywords %}<span class="tag">#{{ k }}</span>{% endfor %}
+    <span>⏱ {{ c.reading_min }}분</span>
+    {% if c.article.is_sns %}<span>🌐 SNS 번역</span>{% endif %}
+    <button class="mini" data-speak="{{ c.uid }}" title="제목과 요약 듣기">🔊 듣기</button>
+    <button class="mini" data-toggle-read="{{ c.uid }}">✓ 읽음 표시</button>
+  </div>
+  {% set paras = c.article.body | paragraphs %}
+  {% if paras %}
+  <details class="fulltext" data-read-on-open>
+    <summary>본문 펼쳐 보기</summary>
+    <div class="body">
+      {% for p in paras %}<p>{{ p }}</p>{% endfor %}
+      {% if c.article.original_body %}
+      <p><b>원문</b></p>
+      {% for p in c.article.original_body | paragraphs(1500) %}<p>{{ p }}</p>{% endfor %}
+      {% endif %}
+    </div>
+  </details>
+  {% endif %}
+{%- endmacro -%}
+{%- macro search_attrs(c) -%}
+  id="{{ c.uid }}" data-uid="{{ c.uid }}" data-cat="{{ c.category }}"
+  data-search="{{ (c.article.title ~ ' ' ~ c.summary ~ ' ' ~ (c.keywords | join(' ')) ~ ' ' ~ c.category) | lower }}"
+  data-speech="{{ c.article.title }}. {{ c.summary }}"
 {%- endmacro %}
-  <main class="paper">
+  <div class="progress" id="progress"></div>
+
+  <header class="topbar">
+    <span class="today">{{ paper.edition_date | date_ko }} · 제{{ paper.issue_no }}호</span>
+    <div class="tools">
+      <button class="tool" id="speakBriefing" title="단축키 B">🔊 브리핑 듣기</button>
+      <button class="tool" data-font="-1" title="글자 작게 (-)">가<sup>-</sup></button>
+      <button class="tool" data-font="1" title="글자 크게 (+)">가<sup>+</sup></button>
+      <button class="tool" id="themeBtn" title="테마 바꾸기 (T)">☀️ 라이트</button>
+      <button class="tool" id="printBtn" title="종이 신문으로 인쇄">🖨 인쇄</button>
+      <button class="tool" id="shareBtn" title="링크 공유">🔗 공유</button>
+      <button class="tool" id="helpBtn" title="단축키 (?)">⌨</button>
+    </div>
+  </header>
+
+  {% if items %}
+  <div class="ticker" aria-label="오늘의 헤드라인">
+    <span class="ticker-label">HEADLINES</span>
+    <div class="ticker-track"><div class="ticker-move">
+      {% for loop_i in range(2) %}{% for c in items %}<a href="#{{ c.uid }}">{{ c.article.title }}</a><span class="sep">◆</span>{% endfor %}{% endfor %}
+    </div></div>
+  </div>
+  {% endif %}
+
+  <main class="paper" id="top">
     <header class="masthead">
-      <h1>{{ paper.title }}</h1>
-      <p class="dateline">{{ paper.edition_date.isoformat() }} 발행 ({{ paper.edition }})<span class="publisher">· 발행인 {{ paper.publisher }}</span></p>
+      <div class="ear ear-left">
+        <b>제 {{ paper.issue_no }} 호</b>
+        {{ paper.schedule_label }} 발행<br>{{ paper.edition }}
+      </div>
+      <div class="nameplate">
+        <p class="kicker">{{ paper.tagline }}</p>
+        <h1>{{ paper.title }}</h1>
+      </div>
+      <div class="ear ear-right">
+        {% if paper.weather %}
+        <span>{{ paper.weather.city }} · {{ paper.weather.text }}</span>
+        <div class="wx-temp">{{ paper.weather.emoji }} {{ paper.weather.temp }}°</div>
+        최고 {{ paper.weather.t_max }}° · 최저 {{ paper.weather.t_min }}°
+        {% else %}
+        <b>{{ paper.edition_date | weekday_ko }}요일 조간</b>
+        {{ paper.edition_date.isoformat() }}
+        {% endif %}
+      </div>
     </header>
-    <hr class="rule">
+    <div class="dateline-bar">
+      <span><b>{{ paper.edition_date.isoformat() }}</b> 발행 ({{ paper.edition }})</span>
+      <span>발행인 <b>{{ paper.publisher }}</b></span>
+      <span>기사 {{ paper.article_count }}건 · 읽는 시간 약 {{ paper.total_reading_min }}분</span>
+      <span>수집 {{ paper.window_label }} KST</span>
+    </div>
+
+    <nav class="section-nav" aria-label="지면 안내">
+      <a href="#top">1면</a>
+      {% for category, group in paper.sections %}
+      <a href="#sec-{{ loop.index }}" style="--c: {{ category | catcolor }}"><span class="dot"></span>{{ category }}<small>{{ group | length }}</small></a>
+      {% endfor %}
+      {% if paper.weekly %}<a href="#weekly">이번 주</a>{% endif %}
+      <a href="#data">지면 데이터</a>
+      <div class="nav-right">
+        <label class="search"><input id="q" type="search" placeholder="기사 검색  ( / )" autocomplete="off"></label>
+        <span class="read-count" id="readCount">읽음 <b>0</b>/{{ items | length }}</span>
+      </div>
+    </nav>
+    <p class="search-status" id="searchStatus" aria-live="polite"></p>
 
     {% if paper.main %}
-    <article class="main-story">
+    <section class="briefing reveal">
+      <div class="brief-main">
+        <h2 class="label">오늘의 3줄 브리핑</h2>
+        <ol class="brief-list" id="briefList">
+          {% for b in paper.briefing %}<li>{{ b }}</li>{% endfor %}
+        </ol>
+        <blockquote class="editor-note" id="editorNote"><span>EDITOR'S NOTE · 편집장 한마디</span>{{ paper.editor_note }}</blockquote>
+      </div>
+      <aside class="brief-side">
+        {% if paper.numbers %}
+        <h2 class="label">숫자로 보는 오늘</h2>
+        <ul class="numbers">
+          {% for value, label in paper.numbers %}<li><b>{{ value }}</b><span>{{ label }}</span></li>{% endfor %}
+        </ul>
+        {% endif %}
+        <h2 class="label">오늘의 키워드</h2>
+        <div class="chips">
+          {% for word, n in paper.keywords %}<button class="chip" data-filter="{{ word }}" style="--w: {{ [n - 1, 4] | min }}">#{{ word }}</button>{% endfor %}
+        </div>
+      </aside>
+    </section>
+
+    {% set c = paper.main %}
+    <article class="main-story story reveal" {{ search_attrs(c) }}>
       <span class="badge">🔥 최고 주요 소식</span>
-      {{ image(paper.main, "media") }}
-      <h2>{{ title_link(paper.main) }}</h2>
-      <p class="summary">{{ paper.main.summary }}</p>
-      {{ source(paper.main) }}
+      {{ image(c, "media") }}
+      {{ eyebrow(c) }}
+      <h2>{{ title_link(c) }}</h2>
+      <p class="summary">{{ c.summary }}</p>
+      {% if c.why %}<p class="why"><b>왜 중요한가</b>{{ c.why }}</p>{% endif %}
+      {{ tools(c) }}
+      {{ source(c) }}
     </article>
     {% else %}
     <p class="empty">수집 기간({{ paper.window_label }})에 'News' 라벨로 들어온 기사가 없습니다.</p>
@@ -48,10 +183,13 @@
     {% if paper.subs %}
     <section class="sub-stories">
       {% for c in paper.subs %}
-      <article class="sub-story">
+      <article class="sub-story story reveal" {{ search_attrs(c) }}>
         {{ image(c, "media") }}
+        {{ eyebrow(c) }}
         <h3>{{ title_link(c) }}</h3>
         <p class="summary">{{ c.summary }}</p>
+        {% if c.why %}<p class="why"><b>왜 중요한가</b>{{ c.why }}</p>{% endif %}
+        {{ tools(c) }}
         {{ source(c) }}
       </article>
       {% endfor %}
@@ -60,25 +198,98 @@
 
     {% if paper.sections %}
     <section class="sections">
-      {% for category, items in paper.sections %}
-      <h3 class="section-title">{{ category }}</h3>
-      {% for c in items %}
-      <article class="item">
+      {% for category, group in paper.sections %}
+      <h3 class="section-title" id="sec-{{ loop.index }}" data-cat="{{ category }}" style="--c: {{ category | catcolor }}">{{ category }}<small>{{ group | length }}건</small></h3>
+      {% for c in group %}
+      <article class="item story" {{ search_attrs(c) }}>
         <div class="item-body">
           <h4>{{ title_link(c) }}</h4>
           <p class="summary">{{ c.summary }}</p>
+          {{ tools(c) }}
           {{ source(c) }}
         </div>
-        {{ image(c, "thumb") }}
+        {{ image(c, "thumb", wrap=False) }}
       </article>
       {% endfor %}
       {% endfor %}
     </section>
     {% endif %}
 
+    {% if paper.weekly %}
+    <section class="block block-weekly reveal" id="weekly">
+      <h2 class="label">이번 주 1면 모아보기</h2>
+      <div class="weekly">
+        {% for w in paper.weekly %}
+        <a class="week-card" href="{{ w.file }}">
+          {% if w.image %}<img src="{{ w.image }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">{% endif %}
+          <div><time>{{ w.date.isoformat() }} ({{ w.date | weekday_ko }})</time><p>{{ w.title }}</p></div>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if items %}
+    <section class="block block-data reveal" id="data">
+      <h2 class="label">지면 데이터</h2>
+      <div class="stat-tiles">
+        <div><b>{{ paper.article_count }}</b><span>오늘의 기사</span></div>
+        <div><b>{{ paper.source_count }}</b><span>출처(매체·계정)</span></div>
+        <div><b>{{ paper.total_reading_min }}<small style="font-size:16px">분</small></b><span>전체 읽는 시간</span></div>
+        <div><b>{{ paper.sns_count }}</b><span>SNS 게시물 (번역)</span></div>
+      </div>
+      <div class="charts">
+        <div class="chart">
+          <h3>분야별 기사 수</h3>
+          <ul class="bars">
+            {% for s in paper.category_stats %}
+            <li><span>{{ s.label }}</span><span class="track"><span class="fill" style="--v: {{ (s.value / stat_max * 100) | round(1) }}%; --c: {{ s.color }}"></span></span><b>{{ s.value }}</b></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="chart">
+          <h3>기사 도착 시간대 (메일 수신, KST)</h3>
+          <div class="hist">
+            {% for n in paper.arrival_hist %}<span class="{{ 'zero' if n == 0 }}" style="--v: {{ (n / hist_max * 100) | round(1) }}%" title="{{ loop.index0 }}시 {{ n }}건"></span>{% endfor %}
+          </div>
+          <div class="hist-axis"><span>0시</span><span>6시</span><span>12시</span><span>18시</span></div>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <nav class="edition-nav" aria-label="다른 호">
+      <span class="prev">{% if paper.prev_edition %}<a href="{{ paper.prev_edition }}">← 이전 호 {{ paper.prev_edition[:10] }}</a>{% endif %}</span>
+      <span class="mid"><a href="index.html">📚 지난 신문 · 달력</a>{% if paper.site_url %} · <a href="{{ paper.site_url }}feed.xml">RSS</a>{% endif %}</span>
+      <span class="next">{% if paper.next_edition %}<a href="{{ paper.next_edition }}">다음 호 {{ paper.next_edition[:10] }} →</a>{% endif %}</span>
+    </nav>
+
     <footer class="colophon">
-      {{ paper.title }} · 수집 기간 {{ paper.window_label }} · 기사 {{ paper.article_count }}건 · 제작 {{ paper.generated_at.strftime("%Y-%m-%d %H:%M") }} KST
+      <div>
+        {{ paper.title }} · 제{{ paper.issue_no }}호 · 제작 {{ paper.generated_at.strftime("%Y-%m-%d %H:%M") }} KST<br>
+        {{ "Gemini AI 편집" if paper.llm_used else "규칙 기반 편집" }} · Gmail IMAP 수집 · Playwright 크롤링{% if paper.weather %} · 날씨 Open-Meteo{% endif %}<br>
+        <span class="kbd-hint"><kbd>/</kbd> 검색 · <kbd>T</kbd> 테마 · <kbd>B</kbd> 브리핑 듣기 · <kbd>J</kbd>/<kbd>K</kbd> 기사 이동 · <kbd>?</kbd> 도움말</span>
+      </div>
+      {% if paper.qr_svg %}<div class="qr">{{ paper.qr_svg | safe }}<span>휴대폰으로<br>이어 읽기</span></div>{% endif %}
     </footer>
   </main>
+
+  <button class="to-top" id="toTop" aria-label="맨 위로">↑</button>
+  <div class="toast" id="toast" role="status"></div>
+  <dialog id="help">
+    <h3>단축키</h3>
+    <ul>
+      <li><kbd>/</kbd> 기사 검색 · <kbd>Esc</kbd> 검색 지우기</li>
+      <li><kbd>J</kbd> 다음 기사 · <kbd>K</kbd> 이전 기사</li>
+      <li><kbd>T</kbd> 테마 (라이트 → 종이 → 다크)</li>
+      <li><kbd>+</kbd> / <kbd>-</kbd> 글자 크기</li>
+      <li><kbd>B</kbd> 오늘의 브리핑 듣기 / 멈추기</li>
+      <li><kbd>P</kbd> 종이 신문으로 인쇄</li>
+    </ul>
+    <form method="dialog"><button class="tool">닫기</button></form>
+  </dialog>
+  <script>
+{{ js | safe }}
+  </script>
 </body>
 </html>

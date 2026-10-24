@@ -29,6 +29,8 @@
 - [x] PC가 꺼져 있어도 발행 — `.github/workflows/daily-newspaper.yml` (GitHub Actions, 정기 실행은 `automation.bat cloud on`)
 - [x] GitHub Pages 배포 — `Output/index.html`(지난 신문 목록) + 신문 HTML 공개
 - [x] GitHub 저장소 Secrets 등록, Pages Source = GitHub Actions 설정 후 Actions 수동 실행으로 검증
-- [ ] 신문 디자인 개선 (보류)
+- [x] 신문 디자인 개선 — 클래식 제호·이중 괘선·귀퉁이(호수·날씨), 티커, 라이트/종이/다크 테마, 모바일, 인쇄 레이아웃
+- [x] 부가 기능 — 3줄 브리핑·편집장 한마디·숫자로 보는 오늘·키워드·왜 중요한가, 음성 듣기, 검색·필터,
+      읽음 표시, 지면 데이터 그래프, 이번 주 1면, 이전/다음 호, 발행 달력·전체 검색, RSS, QR, (선택) 뉴스레터
 - [x] 월요일~금요일 발행 — `PUBLISH_DAYS`(기본 mon-fri), 월요일 호는 주말 메일 포함
 - [x] 정기 자동 발행 기본 꺼짐 + 켜기 옵션 — `automation.bat local|cloud on|off`

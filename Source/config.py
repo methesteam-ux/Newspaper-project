@@ -81,6 +81,14 @@ class Settings:
     edition_name: str
     publish_hour: int
     publish_days: tuple[int, ...] = (0, 1, 2, 3, 4)
+    tagline: str = ""
+    weather_enabled: bool = True
+    weather_city: str = "서울"
+    weather_lat: float = 37.5665
+    weather_lon: float = 126.9780
+    site_url: str = ""
+    newsletter_enabled: bool = False
+    newsletter_to: str = ""
 
     @property
     def has_gmail(self) -> bool:
@@ -106,7 +114,40 @@ def load_settings() -> Settings:
         edition_name=_env("EDITION_NAME", "My 에디션"),
         publish_hour=int(_env("PUBLISH_HOUR", "8")),
         publish_days=parse_publish_days(_env("PUBLISH_DAYS", DEFAULT_PUBLISH_DAYS)),
+        tagline=_env("TAGLINE", "AI 편집장이 고른 오늘의 테크 뉴스"),
+        weather_enabled=_flag("WEATHER_ENABLED", True),
+        weather_city=_env("WEATHER_CITY", "서울"),
+        weather_lat=float(_env("WEATHER_LAT", "37.5665")),
+        weather_lon=float(_env("WEATHER_LON", "126.9780")),
+        site_url=detect_site_url(),
+        newsletter_enabled=_flag("NEWSLETTER_ENABLED", False),
+        newsletter_to=_env("NEWSLETTER_TO"),
     )
+
+
+def _flag(name: str, default: bool) -> bool:
+    value = _env(name).lower()
+    if not value:
+        return default
+    return value in ("1", "true", "yes", "on", "y")
+
+
+def detect_site_url() -> str:
+    """GitHub Pages 주소: SITE_URL > GitHub Actions 저장소 > 로컬 git origin 순으로 찾는다."""
+    explicit = _env("SITE_URL")
+    if explicit:
+        return explicit.rstrip("/") + "/"
+    repo = _env("GITHUB_REPOSITORY")
+    if not repo:
+        git_config = BASE_DIR / ".git" / "config"
+        if git_config.exists():
+            match = re.search(r"url\s*=\s*(?:https://github\.com/|git@github\.com:)([^/\s]+/[^/\s]+?)(?:\.git)?\s*$",
+                              git_config.read_text(encoding="utf-8", errors="ignore"), re.MULTILINE)
+            repo = match.group(1) if match else ""
+    if not repo:
+        return ""
+    owner, name = repo.split("/", 1)
+    return f"https://{owner.lower()}.github.io/{name}/"
 
 
 ALL_DAYS = tuple(range(7))
