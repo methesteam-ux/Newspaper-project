@@ -24,10 +24,8 @@ on:
   # 켜기: automation.bat cloud on
   # <<< AUTOMATION:schedule
 
-permissions:
-  contents: write
-  pages: write
-  id-token: write
+# 기본 권한은 없음. 각 job 이 필요한 권한만 따로 받는다.
+permissions: {}
 
 concurrency:
   group: daily-newspaper
@@ -37,12 +35,13 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write   # 발행된 Output/ 커밋·push
+    # 시크릿은 여기(job 전체)에 두지 않는다. pip install 등 다른 단계의 코드가 읽지 못하도록
+    # 실제로 필요한 "Publish newspaper" 단계에만 넘긴다.
     env:
       TZ: Asia/Seoul
       PYTHONUTF8: "1"
-      GMAIL_USER: ${{ secrets.GMAIL_USER }}
-      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
       GMAIL_LABEL: ${{ vars.GMAIL_LABEL }}
       NEWSPAPER_TITLE: ${{ vars.NEWSPAPER_TITLE }}
@@ -53,12 +52,16 @@ jobs:
 
     steps:
       - name: Check secrets
+        # 값 자체가 아니라 "등록됨 여부(true/false)"만 넘긴다.
+        env:
+          HAS_GMAIL: ${{ secrets.GMAIL_USER != '' && secrets.GMAIL_APP_PASSWORD != '' }}
+          HAS_GEMINI: ${{ secrets.GEMINI_API_KEY != '' }}
         run: |
-          if [ -z "$GMAIL_USER" ] || [ -z "$GMAIL_APP_PASSWORD" ]; then
+          if [ "$HAS_GMAIL" != "true" ]; then
             echo "::error::Secrets 에 GMAIL_USER / GMAIL_APP_PASSWORD 를 등록하세요 (Settings > Secrets and variables > Actions)."
             exit 1
           fi
-          if [ -z "$GEMINI_API_KEY" ]; then
+          if [ "$HAS_GEMINI" != "true" ]; then
             echo "::warning::GEMINI_API_KEY 가 없어 규칙 기반 편집으로 발행합니다."
           fi
 
@@ -78,6 +81,9 @@ jobs:
         id: publish
         env:
           EDITION_DATE: ${{ inputs.date }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           if [ -n "$EDITION_DATE" ]; then
             python Source/main.py --date "$EDITION_DATE"
@@ -125,6 +131,9 @@ jobs:
   deploy-pages:
     needs: publish
     runs-on: ubuntu-latest
+    permissions:
+      pages: write      # Pages 배포
+      id-token: write   # Pages 배포용 OIDC 토큰
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
