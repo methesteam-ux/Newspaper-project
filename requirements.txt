@@ -1,0 +1,17 @@
+# Google APIs & AI
+google-genai>=1.0.0
+
+# Email & Configuration
+python-dotenv>=1.0.1
+pydantic>=2.6.0
+tzdata>=2024.1
+
+# HTML Parsing, Browser Automation & Web Scraping
+playwright>=1.42.0
+beautifulsoup4>=4.12.3
+requests>=2.31.0
+lxml>=5.1.0
+
+# Template Engine & Scheduling
+jinja2>=3.1.3
+schedule>=1.2.0

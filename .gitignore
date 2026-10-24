@@ -1,0 +1,25 @@
+# 비밀정보 (API 키, 앱 비밀번호, 쿠키) — 절대 커밋 금지
+.env
+.env.*
+!.env.example
+secrets/
+*cookies*.json
+*cookie*.txt
+storage_state.json
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# 실행 산출물 (발행된 신문 HTML은 커밋 대상, 로그/데모는 제외)
+Output/*.log
+Output/demo.html
+Output/_debug/
+
+# IDE / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
