@@ -1,7 +1,8 @@
-"""설정 로딩 및 수집 시간대(전날 08:00 ~ 당일 08:00, KST) 계산."""
+"""설정 로딩, 발행 요일, 수집 시간대(직전 발행일 08:00 ~ 발행일 08:00, KST) 계산."""
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
@@ -25,6 +26,47 @@ def _env(name: str, default: str = "") -> str:
     return value or default
 
 
+DAY_NAMES = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+DAY_NAMES_KO = "월화수목금토일"
+DEFAULT_PUBLISH_DAYS = "mon-fri"
+
+
+def parse_publish_days(text: str) -> tuple[int, ...]:
+    """'mon-fri', 'mon,wed,fri', 'daily', '월-금' 등을 요일 번호(월=0 … 일=6) 튜플로."""
+    text = (text or DEFAULT_PUBLISH_DAYS).strip().lower()
+    if text in ("daily", "everyday", "매일", "all"):
+        return tuple(range(7))
+
+    def to_num(token: str) -> int:
+        token = token.strip()
+        if token[:3] in DAY_NAMES:
+            return DAY_NAMES.index(token[:3])
+        if token[:1] and token[:1] in DAY_NAMES_KO:
+            return DAY_NAMES_KO.index(token[:1])
+        raise ValueError(f"PUBLISH_DAYS 를 해석할 수 없습니다: {token!r}")
+
+    days: set[int] = set()
+    for part in re.split(r"[,\s]+", text):
+        if not part:
+            continue
+        if "-" in part or "~" in part:
+            a, b = (to_num(x) for x in re.split(r"[-~]", part, maxsplit=1))
+            days.update((a + i) % 7 for i in range((b - a) % 7 + 1))
+        else:
+            days.add(to_num(part))
+    if not days:
+        raise ValueError("PUBLISH_DAYS 가 비어 있습니다.")
+    return tuple(sorted(days))
+
+
+def describe_days(days: tuple[int, ...]) -> str:
+    if len(days) == 7:
+        return "매일"
+    if days == (0, 1, 2, 3, 4):
+        return "월~금"
+    return ",".join(DAY_NAMES_KO[d] for d in days)
+
+
 @dataclass(frozen=True)
 class Settings:
     gemini_api_key: str
@@ -38,6 +80,7 @@ class Settings:
     publisher_name: str
     edition_name: str
     publish_hour: int
+    publish_days: tuple[int, ...] = (0, 1, 2, 3, 4)
 
     @property
     def has_gmail(self) -> bool:
@@ -62,21 +105,36 @@ def load_settings() -> Settings:
         publisher_name=_env("PUBLISHER_NAME", "Publisher"),
         edition_name=_env("EDITION_NAME", "My 에디션"),
         publish_hour=int(_env("PUBLISH_HOUR", "8")),
+        publish_days=parse_publish_days(_env("PUBLISH_DAYS", DEFAULT_PUBLISH_DAYS)),
     )
 
 
-def resolve_edition_date(now: datetime | None = None, publish_hour: int = 8) -> date:
-    """현재 시각 기준 가장 최근의 발행 시각(08:00)이 속한 날짜를 발행일로 본다.
+ALL_DAYS = tuple(range(7))
 
-    예) 10/24 08:05 실행 → 10/24 호, 10/24 07:30 실행 → 10/23 호
+
+def resolve_edition_date(
+    now: datetime | None = None, publish_hour: int = 8, publish_days: tuple[int, ...] = ALL_DAYS
+) -> date:
+    """현재 시각 기준 가장 최근의 '발행 요일 08:00'이 속한 날짜를 발행일로 본다.
+
+    예) 월~금 발행일 때 화 08:05 실행 → 화요일 호, 화 07:30 → 월요일 호, 토/일 실행 → 금요일 호
     """
     now = (now or datetime.now(KST)).astimezone(KST)
-    if now.time() >= time(publish_hour):
-        return now.date()
-    return now.date() - timedelta(days=1)
+    day = now.date() if now.time() >= time(publish_hour) else now.date() - timedelta(days=1)
+    while day.weekday() not in publish_days:
+        day -= timedelta(days=1)
+    return day
 
 
-def collection_window(edition_date: date, publish_hour: int = 8) -> tuple[datetime, datetime]:
-    """발행일 D 의 수집 구간: [D-1 08:00, D 08:00) KST."""
+def collection_window(
+    edition_date: date, publish_hour: int = 8, publish_days: tuple[int, ...] = ALL_DAYS
+) -> tuple[datetime, datetime]:
+    """발행일 D 의 수집 구간: [직전 발행일 08:00, D 08:00) KST.
+
+    월~금 발행이면 월요일 호는 금 08:00 ~ 월 08:00 (주말 메일 포함), 화요일 호는 월 08:00 ~ 화 08:00.
+    """
     end = datetime.combine(edition_date, time(publish_hour), tzinfo=KST)
-    return end - timedelta(days=1), end
+    prev = edition_date - timedelta(days=1)
+    while prev.weekday() not in publish_days:
+        prev -= timedelta(days=1)
+    return datetime.combine(prev, time(publish_hour), tzinfo=KST), end

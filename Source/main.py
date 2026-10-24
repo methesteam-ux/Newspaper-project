@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 import time
 from datetime import date, datetime
@@ -46,8 +47,8 @@ def run(edition_date: date | None = None, demo: bool = False, use_llm: bool = Tr
 
     started = time.monotonic()
     settings = load_settings()
-    edition_date = edition_date or resolve_edition_date(publish_hour=settings.publish_hour)
-    start, end = collection_window(edition_date, settings.publish_hour)
+    edition_date = edition_date or resolve_edition_date(publish_hour=settings.publish_hour, publish_days=settings.publish_days)
+    start, end = collection_window(edition_date, settings.publish_hour, settings.publish_days)
     window_label = f"{start:%m-%d %H:%M} ~ {end:%m-%d %H:%M}"
     log.info("=== %s %s 호 제작 시작 (수집 %s KST) ===", settings.newspaper_title, edition_date, window_label)
 
@@ -84,8 +85,17 @@ def run(edition_date: date | None = None, demo: bool = False, use_llm: bool = Tr
     path = render(paper, OUTPUT_DIR / filename)
     if not demo:
         render_index(OUTPUT_DIR, settings.newspaper_title, settings.publisher_name)
+        _github_output(edition=edition_date.isoformat())
     log.info("=== 발행 완료: %s (기사 %d건, %.1f초) ===", path, len(articles), time.monotonic() - started)
     return 0
+
+
+def _github_output(**values: str) -> None:
+    """GitHub Actions 에서 실행 중이면 다음 단계가 쓸 값을 남긴다 (예: 커밋 메시지의 발행일)."""
+    target = os.getenv("GITHUB_OUTPUT")
+    if target:
+        with open(target, "a", encoding="utf-8") as fh:
+            fh.writelines(f"{k}={v}\n" for k, v in values.items())
 
 
 def main() -> int:

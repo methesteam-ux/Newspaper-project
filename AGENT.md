@@ -22,14 +22,15 @@ Gmail 필터가 `News` 라벨을 붙이고, 이 프로그램이 매일 아침 08
 | 2단계 | Gemini 중요도 평가(메인 1 / 부 2 / 카테고리), SNS 한글 번역·헤드라인, 레퍼런스 이미지 1:1 디자인 템플릿, `Output/YYYY-MM-DD.html` 발행, 08:00 스케줄러 | 완료 |
 | 응용과제 | PC가 꺼져 있어도 발행 — GitHub Actions 클라우드 실행 | 완료 |
 
-> 응용과제 중 "신문 디자인 개선", "월~금 발행"은 아직 범위가 아니다. 요청이 있을 때만 진행한다.
+> 정기 자동 발행(로컬 작업 스케줄러, GitHub Actions schedule)은 **기본값 꺼짐**이다. `automation.bat` 으로만 켜고 끈다.
 
 ## 3. 핵심 규칙
 
 1. **비밀정보는 절대 커밋하지 않는다.** `GEMINI_API_KEY`, `GMAIL_APP_PASSWORD`, 쿠키/세션 파일은 `.env`(로컬) 또는
    GitHub Secrets(클라우드)에만 둔다. `.env`, `*cookies*.json`, `storage_state.json`, `secrets/`는 `.gitignore` 대상이다.
    저장소에는 값이 빈 `.env.example`만 둔다.
-2. **수집 시간대**: 한국시간(KST, `Asia/Seoul`) 기준, 발행일 D의 신문은 `D-1 08:00 ≤ 수신시각 < D 08:00` 메일만 대상으로 한다.
+2. **수집 시간대**: 한국시간(KST, `Asia/Seoul`) 기준, 발행일 D의 신문은 `직전 발행일 08:00 ≤ 수신시각 < D 08:00` 메일만 대상으로 한다.
+   발행 요일은 `PUBLISH_DAYS`(기본 월~금)이며, 월요일 호는 금 08:00 ~ 월 08:00(주말 포함)을 수집한다.
 3. **IMAP 방식만 사용**: `imaplib` SSL(`imap.gmail.com:993`) + Gmail 앱 비밀번호. 메일은 `BODY.PEEK[]`로 읽어 읽음 표시를 바꾸지 않는다.
 4. **크롤링은 Playwright**(Chromium headless)로 한다. 단, X(트위터)처럼 로그인 벽이 있는 경우에만 공개 API 폴백을 허용한다.
 5. **정형 데이터(신문 기사)**: 기사 제목과 본문을 가공 없이 그대로 가져온다.
@@ -51,14 +52,16 @@ Newspaper-project/
 ├── .gitignore
 ├── .gitattributes            # .bat/.ps1 CRLF 줄바꿈 고정
 ├── run_daily.bat             # 가상환경 기반 신문 발행 원클릭 실행
-├── register_task.bat         # Windows 작업 스케줄러 등록 (관리자 권한)
+├── automation.bat            # 정기 자동 발행 켜기/끄기/상태 (기본: 모두 꺼짐)
+├── register_task.bat         # = automation.bat local on (호환용)
 ├── register_task.ps1         # 실제 등록 로직 (WakeToRun, StartWhenAvailable)
 ├── .github/workflows/
 │   └── daily-newspaper.yml   # [응용과제] GitHub Actions 클라우드 발행 + GitHub Pages 배포
 ├── Image/                    # 디자인 레퍼런스 이미지 (img_1 ~ img_3, 로컬 전용·저장소 미포함)
 ├── Output/                   # 발행된 신문 HTML (YYYY-MM-DD.html), 지난 신문 목록(index.html), 실행 로그
 └── Source/
-    ├── config.py             # .env 로딩, 08:00 수집 시간대 계산
+    ├── config.py             # .env 로딩, 발행 요일, 수집 시간대 계산
+    ├── automation.py         # 정기 자동 발행 on/off (작업 스케줄러 / 워크플로 schedule 블록)
     ├── models.py             # Article / CuratedArticle / Newspaper 모델
     ├── gmail_imap.py         # [1단계] Gmail IMAP 수집 및 메일 파싱
     ├── crawler.py            # [1단계] Playwright 동적 크롤러 (정형/비정형)
@@ -74,7 +77,7 @@ Newspaper-project/
     │   └── style.css         # 레퍼런스 이미지 기반 스타일 (HTML에 인라인 삽입)
     ├── main.py               # 전체 파이프라인 통합 CLI
     ├── demo_data.py          # --demo 샘플 기사 (자격 증명 없이 레이아웃 확인)
-    └── scheduler.py          # 파이썬 상주형 08:00 자동 발행 데몬
+    └── scheduler.py          # 파이썬 상주형 발행 데몬 (직접 실행할 때만 동작)
 ```
 
 ## 5. 모듈 규격
@@ -102,9 +105,12 @@ Newspaper-project/
    - 나머지: 카테고리 제목 + 2단(CSS columns) 목록, 제목/요약/썸네일(우측)/출처.
    - 요약은 2~3줄, `text-align: justify`. 출처는 **원문 URL 링크**로 표시.
 8. **통합 CLI (`Source/main.py`)**: `python Source/main.py [--date YYYY-MM-DD] [--demo] [--no-llm]`.
-9. **스케줄러**: `scheduler.py`(상주형), `run_daily.bat`(1회 실행, `Output/daily_run.log` 기록),
-   `register_task.bat`(Windows 작업 스케줄러, 매일 08:00, WakeToRun, StartWhenAvailable),
-   `.github/workflows/daily-newspaper.yml`(매일 23:00 UTC = 08:00 KST, 결과 HTML 커밋 + GitHub Pages 배포).
+9. **스케줄러 (기본: 모두 꺼짐)**: `run_daily.bat`(수동 1회 실행, `Output/daily_run.log` 기록),
+   `scheduler.py`(직접 띄운 동안만 동작하는 상주형),
+   `automation.bat local on|off`(Windows 작업 스케줄러: 발행 요일 08:00, WakeToRun, StartWhenAvailable / off = 작업 삭제),
+   `automation.bat cloud on|off`(`.github/workflows/daily-newspaper.yml` 의 `AUTOMATION:schedule` 블록 전환 후 커밋·push.
+   off = schedule 트리거 자체가 없어 GitHub 가 워크플로를 호출하지 않음. 수동 *Run workflow* 만 가능).
+   워크플로는 결과를 커밋하고 GitHub Pages 로 배포한다. `AUTOMATION` 블록은 손으로 고치지 않는다.
 10. **로그 공개 주의**: 로그는 Artifacts 로 공개될 수 있으므로 메일 주소·키를 로그에 남기지 않는다. Pages 에는 HTML 만 올린다.
 
 ## 6. 환경 변수
@@ -120,7 +126,8 @@ Newspaper-project/
 | `NEWSPAPER_TITLE` | 신문 이름 | `My Tech Daily` |
 | `PUBLISHER_NAME` | 발행인 | `Publisher` |
 | `EDITION_NAME` | 에디션(편집인) 이름 | `My 에디션` |
-| `PUBLISH_HOUR` | 수집 기준 시각(시) | `8` |
+| `PUBLISH_HOUR` | 발행·수집 기준 시각(시) | `8` |
+| `PUBLISH_DAYS` | 발행 요일 (`mon-fri`, `daily`, `mon,wed,fri` …) | `mon-fri` |
 
 ## 7. 작업 규칙 (에이전트용)
 

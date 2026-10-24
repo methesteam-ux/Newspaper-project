@@ -1,22 +1,28 @@
-# [응용과제] PC가 꺼져 있어도 GitHub 클라우드에서 매일 08:00(KST) 신문 발행
+# [응용과제] PC가 꺼져 있어도 GitHub 클라우드에서 신문 발행
+#
+# 기본값: 정기 실행 꺼짐 (아래 AUTOMATION 블록에 schedule 이 없으면 GitHub 가 이 워크플로를
+#         절대 스스로 실행하지 않는다). Actions 탭 > Run workflow 로 수동 실행만 가능.
+#         정기 실행 켜기/끄기: 로컬에서 automation.bat cloud on / off
 #
 # 사전 준비 (저장소 Settings > Secrets and variables > Actions):
 #   Secrets  : GMAIL_USER, GMAIL_APP_PASSWORD, GEMINI_API_KEY
-#   Variables: NEWSPAPER_TITLE, PUBLISHER_NAME, EDITION_NAME (선택)
+#   Variables: NEWSPAPER_TITLE, PUBLISHER_NAME, EDITION_NAME, PUBLISH_DAYS (선택)
 #   Pages    : Settings > Pages > Build and deployment > Source = "GitHub Actions"
-# 발행된 Output/YYYY-MM-DD.html 은 저장소에 커밋되고, GitHub Pages
+# 발행된 Output/ 은 저장소에 커밋되고, GitHub Pages
 # (https://<계정>.github.io/<저장소>/)로 배포되어 브라우저에서 바로 읽을 수 있다.
 name: Daily Newspaper
 
 on:
-  schedule:
-    - cron: "0 23 * * *" # 매일 23:00 UTC = 08:00 KST (GitHub 사정으로 수 분~수십 분 지연될 수 있음)
   workflow_dispatch:
     inputs:
       date:
-        description: "발행일 YYYY-MM-DD (비우면 가장 최근 08:00 기준)"
+        description: "발행일 YYYY-MM-DD (비우면 가장 최근 발행일 08:00 기준)"
         required: false
         default: ""
+  # >>> AUTOMATION:schedule — automation.bat cloud on/off 로만 전환하세요 (직접 수정 금지)
+  # (꺼짐) schedule 트리거 없음 → GitHub 가 이 워크플로를 스스로 실행하지 않습니다.
+  # 켜기: automation.bat cloud on
+  # <<< AUTOMATION:schedule
 
 permissions:
   contents: write
@@ -42,6 +48,8 @@ jobs:
       NEWSPAPER_TITLE: ${{ vars.NEWSPAPER_TITLE }}
       PUBLISHER_NAME: ${{ vars.PUBLISHER_NAME }}
       EDITION_NAME: ${{ vars.EDITION_NAME }}
+      PUBLISH_DAYS: ${{ vars.PUBLISH_DAYS }}
+      PUBLISH_HOUR: ${{ vars.PUBLISH_HOUR }}
 
     steps:
       - name: Check secrets
@@ -67,6 +75,7 @@ jobs:
           python -m playwright install --with-deps chromium
 
       - name: Publish newspaper
+        id: publish
         env:
           EDITION_DATE: ${{ inputs.date }}
         run: |
@@ -77,24 +86,26 @@ jobs:
           fi
 
       - name: Commit newspaper
+        env:
+          EDITION: ${{ steps.publish.outputs.edition }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Output/*.html
+          git add -A Output
           if git diff --cached --quiet; then
             echo "변경된 신문이 없습니다."
             exit 0
           fi
-          git commit -m "chore: $(date +%F) 신문 자동 발행 (GitHub Actions)"
+          git commit -m "chore: ${EDITION:-$(date +%F)} 신문 발행 (GitHub Actions)"
           git pull --rebase
           git push
 
-      # Pages 에는 신문 HTML 만 올린다 (실행 로그는 공개하지 않음).
+      # Pages 에는 공개용 산출물만 올린다 (실행 로그·데모·미리보기는 제외).
       - name: Prepare Pages site
         run: |
           mkdir -p _site
-          cp Output/*.html _site/
-          rm -f _site/demo.html
+          cp -r Output/. _site/
+          rm -rf _site/*.log _site/_debug _site/_demo _site/demo.html _site/preview.html
 
       - uses: actions/upload-pages-artifact@v4
         with:

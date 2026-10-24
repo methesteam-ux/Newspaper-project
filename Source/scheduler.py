@@ -1,7 +1,7 @@
-"""파이썬 상주형 자동 발행 데몬 — 매일 PUBLISH_HOUR(기본 08:00)에 main.py 를 실행한다.
+"""파이썬 상주형 발행 데몬 — 발행 요일(기본 월~금) PUBLISH_HOUR(기본 08:00)에 main.py 를 실행한다.
 
-창을 띄워 둔 동안만 동작한다. PC 를 켜 두지 않아도 되는 방식은 register_task.bat(Windows 작업 스케줄러)
-또는 GitHub Actions(.github/workflows/daily-newspaper.yml)를 사용한다.
+직접 실행해서 창을 띄워 둔 동안만 동작한다(기본으로는 실행되지 않음).
+PC 를 켜 두지 않아도 되는 방식은 automation.bat local on(작업 스케줄러) / cloud on(GitHub Actions).
 
 사용법:
     .venv\\Scripts\\python.exe Source\\scheduler.py [--now]
@@ -16,7 +16,9 @@ from datetime import datetime
 
 import schedule
 
-from config import BASE_DIR, SOURCE_DIR, load_settings
+from config import BASE_DIR, DAY_NAMES, SOURCE_DIR, describe_days, load_settings
+
+_WEEKDAY_JOBS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 
 def publish() -> None:
@@ -31,9 +33,12 @@ def main() -> None:
     parser.add_argument("--now", action="store_true", help="시작하자마자 한 번 발행")
     args = parser.parse_args()
 
-    at = f"{load_settings().publish_hour:02d}:00"
-    schedule.every().day.at(at).do(publish)
-    print(f"스케줄러 시작: 매일 {at}(PC 로컬 시간) 발행. 종료하려면 Ctrl+C", flush=True)
+    settings = load_settings()
+    at = f"{settings.publish_hour:02d}:00"
+    for day in settings.publish_days:
+        getattr(schedule.every(), _WEEKDAY_JOBS[day]).at(at).do(publish)
+    print(f"스케줄러 시작: {describe_days(settings.publish_days)} {at}(PC 로컬 시간) 발행. 종료하려면 Ctrl+C", flush=True)
+    print("  예정: " + ", ".join(DAY_NAMES[d] for d in settings.publish_days), flush=True)
     if args.now:
         publish()
     while True:

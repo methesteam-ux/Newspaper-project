@@ -33,8 +33,8 @@ def main() -> int:
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 
     settings = load_settings()
-    edition = date.fromisoformat(args.date) if args.date else resolve_edition_date(publish_hour=settings.publish_hour)
-    start, end = collection_window(edition, settings.publish_hour)
+    edition = date.fromisoformat(args.date) if args.date else resolve_edition_date(publish_hour=settings.publish_hour, publish_days=settings.publish_days)
+    start, end = collection_window(edition, settings.publish_hour, settings.publish_days)
     print("=" * 70)
     print("  [1단계 검증] 데이터 수집, 본문 추출, Playwright 크롤링, 중복 제거")
     print("=" * 70)
