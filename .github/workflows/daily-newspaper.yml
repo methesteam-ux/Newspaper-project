@@ -1,0 +1,97 @@
+# [응용과제] PC가 꺼져 있어도 GitHub 클라우드에서 매일 08:00(KST) 신문 발행
+#
+# 사전 준비 (저장소 Settings > Secrets and variables > Actions):
+#   Secrets  : GMAIL_USER, GMAIL_APP_PASSWORD, GEMINI_API_KEY
+#   Variables: NEWSPAPER_TITLE, PUBLISHER_NAME, EDITION_NAME (선택)
+# 발행된 Output/YYYY-MM-DD.html 은 이 워크플로가 저장소에 커밋한다.
+name: Daily Newspaper
+
+on:
+  schedule:
+    - cron: "0 23 * * *" # 매일 23:00 UTC = 08:00 KST (GitHub 사정으로 수 분~수십 분 지연될 수 있음)
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "발행일 YYYY-MM-DD (비우면 가장 최근 08:00 기준)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-newspaper
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Seoul
+      PYTHONUTF8: "1"
+      GMAIL_USER: ${{ secrets.GMAIL_USER }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+      GMAIL_LABEL: ${{ vars.GMAIL_LABEL }}
+      NEWSPAPER_TITLE: ${{ vars.NEWSPAPER_TITLE }}
+      PUBLISHER_NAME: ${{ vars.PUBLISHER_NAME }}
+      EDITION_NAME: ${{ vars.EDITION_NAME }}
+
+    steps:
+      - name: Check secrets
+        run: |
+          if [ -z "$GMAIL_USER" ] || [ -z "$GMAIL_APP_PASSWORD" ]; then
+            echo "::error::Secrets 에 GMAIL_USER / GMAIL_APP_PASSWORD 를 등록하세요 (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "::warning::GEMINI_API_KEY 가 없어 규칙 기반 편집으로 발행합니다."
+          fi
+
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Publish newspaper
+        env:
+          EDITION_DATE: ${{ inputs.date }}
+        run: |
+          if [ -n "$EDITION_DATE" ]; then
+            python Source/main.py --date "$EDITION_DATE"
+          else
+            python Source/main.py
+          fi
+
+      - name: Commit newspaper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Output/*.html
+          if git diff --cached --quiet; then
+            echo "변경된 신문이 없습니다."
+            exit 0
+          fi
+          git commit -m "chore: $(date +%F) 신문 자동 발행 (GitHub Actions)"
+          git pull --rebase
+          git push
+
+      - name: Upload newspaper & log
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: newspaper-${{ github.run_id }}
+          path: |
+            Output/*.html
+            Output/daily_run.log
+          if-no-files-found: ignore
+          retention-days: 14

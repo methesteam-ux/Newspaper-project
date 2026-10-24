@@ -26,7 +26,7 @@
 - [ ] 실제 Gemini 편집 검증 — `.env`에 `GEMINI_API_KEY` 입력 후 `run_daily.bat` 실행 (사용자)
 
 ## 응용과제
-- [ ] PC가 꺼져 있어도 발행 — `.github/workflows/daily-newspaper.yml` (GitHub Actions, 매일 08:00 KST)
+- [x] PC가 꺼져 있어도 발행 — `.github/workflows/daily-newspaper.yml` (GitHub Actions, 매일 08:00 KST)
 - [ ] GitHub 저장소 Secrets 등록 후 Actions 수동 실행으로 검증 (사용자)
 - [ ] 신문 디자인 개선 (보류)
 - [ ] 월요일~금요일 발행 (보류)
