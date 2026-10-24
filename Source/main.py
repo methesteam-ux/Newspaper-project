@@ -41,7 +41,7 @@ def run(edition_date: date | None = None, demo: bool = False, use_llm: bool = Tr
     from gmail_imap import fetch_mails
     from llm import make_gemini
     from models import Newspaper
-    from renderer import render
+    from renderer import render, render_index
     from sns_helper import localize_sns
 
     started = time.monotonic()
@@ -82,6 +82,8 @@ def run(edition_date: date | None = None, demo: bool = False, use_llm: bool = Tr
     )
     filename = "demo.html" if demo else f"{edition_date.isoformat()}.html"
     path = render(paper, OUTPUT_DIR / filename)
+    if not demo:
+        render_index(OUTPUT_DIR, settings.newspaper_title, settings.publisher_name)
     log.info("=== 발행 완료: %s (기사 %d건, %.1f초) ===", path, len(articles), time.monotonic() - started)
     return 0
 

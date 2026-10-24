@@ -111,11 +111,19 @@ def fetch_mails(settings: Settings, start: datetime, end: datetime) -> list[RawM
     """라벨 폴더에서 [start, end) 구간에 받은 메일을 가져온다. 읽음 상태는 바꾸지 않는다."""
     if not settings.has_gmail:
         raise RuntimeError(".env 에 GMAIL_USER / GMAIL_APP_PASSWORD 가 설정되지 않았습니다.")
+    if "@" not in settings.gmail_user:
+        raise RuntimeError("GMAIL_USER 는 전체 이메일 주소(예: yourname@gmail.com)여야 합니다.")
 
-    log.info("IMAP 접속: %s:%s (%s)", settings.imap_server, settings.imap_port, settings.gmail_user)
+    # 로그가 Artifacts/Pages 로 공개될 수 있으므로 계정 주소는 남기지 않는다.
+    log.info("IMAP 접속: %s:%s", settings.imap_server, settings.imap_port)
     conn = imaplib.IMAP4_SSL(settings.imap_server, settings.imap_port)
     try:
-        conn.login(settings.gmail_user, settings.gmail_app_password)
+        try:
+            conn.login(settings.gmail_user, settings.gmail_app_password)
+        except imaplib.IMAP4.error as exc:
+            raise RuntimeError(
+                f"Gmail 로그인 실패({exc}). GMAIL_USER(전체 주소)와 16자리 앱 비밀번호를 확인하세요."
+            ) from None
         mailbox = '"' + imap_utf7_encode(settings.gmail_label).replace('"', '\\"') + '"'
         status, _ = conn.select(mailbox, readonly=True)
         if status != "OK":

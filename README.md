@@ -54,8 +54,14 @@ run_daily.bat --demo                               # 샘플 기사로 레이아�
 1. 저장소 **Settings > Secrets and variables > Actions**
    - Secrets: `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `GEMINI_API_KEY`
    - Variables(선택): `NEWSPAPER_TITLE`, `PUBLISHER_NAME`, `EDITION_NAME`
-2. **Actions** 탭 > *Daily Newspaper* > *Run workflow* 로 수동 실행해 확인
-3. 이후 매일 08:00 KST(23:00 UTC)에 자동 실행되고, 발행된 `Output/YYYY-MM-DD.html`이 저장소에 커밋됩니다.
-   (실행 결과 HTML과 로그는 Actions 실행 페이지의 Artifacts 에서도 받을 수 있습니다.)
+2. **Settings > Pages > Build and deployment > Source** 를 **GitHub Actions** 로 선택
+3. **Actions** 탭 > *Daily Newspaper* > *Run workflow* 로 수동 실행해 확인
+4. 이후 매일 08:00 KST(23:00 UTC)에 자동 실행되고, 발행된 `Output/YYYY-MM-DD.html`이 저장소에 커밋됩니다.
+5. 신문은 GitHub Pages 에서 바로 읽을 수 있습니다: `https://<계정>.github.io/<저장소>/`
+   - 첫 화면(`index.html`)은 지난 신문 목록, 최신호는 맨 위
+   - 실행 로그는 Pages 에 올리지 않고 Actions 실행 페이지의 Artifacts 에서만 받을 수 있습니다.
+
+> GitHub Pages 사이트는 **공개**됩니다(무료 플랜은 저장소도 public 이어야 Pages 사용 가능).
+> 신문에는 수집한 기사 제목·요약·원문 링크만 들어가며, 메일 주소나 키는 포함되지 않습니다.
 
 > GitHub Actions 봇이 저장소에 커밋하므로, 로컬에서 작업하기 전에 `git pull` 해 주세요.

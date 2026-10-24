@@ -54,9 +54,9 @@ Newspaper-project/
 ├── register_task.bat         # Windows 작업 스케줄러 등록 (관리자 권한)
 ├── register_task.ps1         # 실제 등록 로직 (WakeToRun, StartWhenAvailable)
 ├── .github/workflows/
-│   └── daily-newspaper.yml   # [응용과제] GitHub Actions 클라우드 발행
+│   └── daily-newspaper.yml   # [응용과제] GitHub Actions 클라우드 발행 + GitHub Pages 배포
 ├── Image/                    # 디자인 레퍼런스 이미지 (img_1 ~ img_3)
-├── Output/                   # 발행된 신문 HTML (YYYY-MM-DD.html), 실행 로그
+├── Output/                   # 발행된 신문 HTML (YYYY-MM-DD.html), 지난 신문 목록(index.html), 실행 로그
 └── Source/
     ├── config.py             # .env 로딩, 08:00 수집 시간대 계산
     ├── models.py             # Article / CuratedArticle / Newspaper 모델
@@ -70,6 +70,7 @@ Newspaper-project/
     ├── renderer.py           # [2단계] Jinja2 HTML 렌더러
     ├── templates/
     │   ├── newspaper.html    # 신문 레이아웃 템플릿
+    │   ├── index.html        # 지난 신문 목록 (GitHub Pages 첫 화면)
     │   └── style.css         # 레퍼런스 이미지 기반 스타일 (HTML에 인라인 삽입)
     ├── main.py               # 전체 파이프라인 통합 CLI
     ├── demo_data.py          # --demo 샘플 기사 (자격 증명 없이 레이아웃 확인)
@@ -103,7 +104,8 @@ Newspaper-project/
 8. **통합 CLI (`Source/main.py`)**: `python Source/main.py [--date YYYY-MM-DD] [--demo] [--no-llm]`.
 9. **스케줄러**: `scheduler.py`(상주형), `run_daily.bat`(1회 실행, `Output/daily_run.log` 기록),
    `register_task.bat`(Windows 작업 스케줄러, 매일 08:00, WakeToRun, StartWhenAvailable),
-   `.github/workflows/daily-newspaper.yml`(매일 23:00 UTC = 08:00 KST, 결과 HTML 커밋).
+   `.github/workflows/daily-newspaper.yml`(매일 23:00 UTC = 08:00 KST, 결과 HTML 커밋 + GitHub Pages 배포).
+10. **로그 공개 주의**: 로그는 Artifacts 로 공개될 수 있으므로 메일 주소·키를 로그에 남기지 않는다. Pages 에는 HTML 만 올린다.
 
 ## 6. 환경 변수
 

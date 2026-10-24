@@ -27,6 +27,7 @@
 
 ## 응용과제
 - [x] PC가 꺼져 있어도 발행 — `.github/workflows/daily-newspaper.yml` (GitHub Actions, 매일 08:00 KST)
-- [ ] GitHub 저장소 Secrets 등록 후 Actions 수동 실행으로 검증 (사용자)
+- [x] GitHub Pages 배포 — `Output/index.html`(지난 신문 목록) + 신문 HTML 공개
+- [ ] GitHub 저장소 Secrets 등록, Pages Source = GitHub Actions 설정 후 Actions 수동 실행으로 검증 (사용자)
 - [ ] 신문 디자인 개선 (보류)
 - [ ] 월요일~금요일 발행 (보류)
